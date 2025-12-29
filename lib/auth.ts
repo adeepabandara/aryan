@@ -21,8 +21,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         try {
+          // Determine the base URL
+          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+          
           // Call our API route to verify credentials
-          const response = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/verify`, {
+          const response = await fetch(`${baseUrl}/api/auth/verify`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -34,6 +37,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           })
 
           if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            console.error("Verify API error:", response.status, errorData)
             return null
           }
 
