@@ -21,28 +21,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         try {
-          // Determine the base URL
-          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
-          
-          // Call our API route to verify credentials
-          const response = await fetch(`${baseUrl}/api/auth/verify`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password,
-            }),
-          })
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}))
-            console.error("Verify API error:", response.status, errorData)
-            return null
-          }
-
-          const user = await response.json()
+          // Dynamic import to avoid bundling Prisma in Edge middleware
+          const { verifyCredentials } = await import("@/lib/auth-helpers")
+          const user = await verifyCredentials(
+            credentials.email as string,
+            credentials.password as string
+          )
           return user
         } catch (error) {
           console.error("Auth error:", error)
