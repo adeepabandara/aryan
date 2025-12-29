@@ -1,7 +1,5 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
-import { prisma } from "@/lib/prisma"
-import * as bcrypt from "bcryptjs"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
@@ -18,52 +16,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        console.log("=== AUTHORIZE CALLED ===")
-        console.log("Email:", credentials?.email)
-        console.log("Password length:", credentials?.password?.length)
-        console.log("Password:", credentials?.password)
-        
         if (!credentials?.email || !credentials?.password) {
-          console.log("Missing credentials")
           return null
         }
 
         try {
-          const user = await prisma.user.findUnique({
-            where: {
-              email: credentials.email as string,
+          // Call our API route to verify credentials
+          const response = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/verify`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
             },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+            }),
           })
 
-          console.log("User found:", !!user)
-          console.log("Stored hash:", user?.password?.substring(0, 20) + "...")
-
-          if (!user || !user.password) {
-            console.log("User not found or no password")
+          if (!response.ok) {
             return null
           }
 
-          const isPasswordValid = await bcrypt.compare(
-            credentials.password as string,
-            user.password
-          )
-
-          console.log("Password valid:", isPasswordValid)
-
-          if (!isPasswordValid) {
-            console.log("Invalid password")
-            // Try manual verification
-            const manualCheck = await bcrypt.compare("admin123", user.password)
-            console.log("Manual 'admin123' check:", manualCheck)
-            return null
-          }
-
-          console.log("=== LOGIN SUCCESS ===")
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-          }
+          const user = await response.json()
+          return user
         } catch (error) {
           console.error("Auth error:", error)
           return null
