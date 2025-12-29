@@ -1,5 +1,6 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
+import { verifyCredentials } from "@/lib/auth-helpers"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
@@ -21,8 +22,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         try {
-          // Dynamic import to avoid bundling Prisma in Edge middleware
-          const { verifyCredentials } = await import("@/lib/auth-helpers")
           const user = await verifyCredentials(
             credentials.email as string,
             credentials.password as string
