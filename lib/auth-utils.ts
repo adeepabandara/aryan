@@ -1,0 +1,18 @@
+import { auth } from "@/lib/auth"
+
+export async function getServerSession() {
+  return await auth()
+}
+
+export async function getCurrentUser() {
+  const session = await auth()
+  return session?.user
+}
+
+export async function requireAuth() {
+  const session = await auth()
+  if (!session) {
+    throw new Error("Unauthorized")
+  }
+  return session
+}

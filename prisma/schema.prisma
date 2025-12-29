@@ -1,0 +1,204 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Customer {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  name          String
+  email         String?
+  contactNumber String?
+  address       String?
+  description   String?
+  type          CustomerType @default(CORPORATE)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  invoices      Invoice[]
+  payments      Payment[]
+  
+  @@index([code])
+  @@index([name])
+}
+
+enum CustomerType {
+  CORPORATE
+  ONLINE
+}
+
+model Product {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  name          String
+  category      String?
+  hsnCode       String?
+  unit          String?
+  cost          Float     @default(0)
+  salesMargin   Float     @default(0)
+  price         Float
+  gst           Float     @default(0)
+  stock         Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  invoiceItems  InvoiceLineItem[]
+  
+  @@index([code])
+  @@index([name])
+}
+
+model Invoice {
+  id                      String    @id @default(cuid())
+  invoiceNumber           String    @unique
+  invoiceDate             DateTime
+  dueDate                 DateTime
+  customerId              String
+  subtotal                Float
+  lineDiscounts           Float     @default(0)
+  invoiceDiscount         Float     @default(0)
+  subtotalAfterDiscounts  Float
+  taxPercentage           Float     @default(0)
+  taxAmount               Float
+  grandTotal              Float
+  amountPaid              Float     @default(0)
+  balance                 Float
+  status                  InvoiceStatus @default(PENDING)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  
+  customer                Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  lineItems               InvoiceLineItem[]
+  paymentInvoices         PaymentInvoice[]
+  
+  @@index([invoiceNumber])
+  @@index([customerId])
+  @@index([status])
+  @@index([invoiceDate])
+}
+
+enum InvoiceStatus {
+  PAID
+  PARTIAL
+  PENDING
+  OVERDUE
+}
+
+model InvoiceLineItem {
+  id            String    @id @default(cuid())
+  invoiceId     String
+  productId     String
+  quantity      Int
+  price         Float
+  lineDiscount  Float     @default(0)
+  gst           Float     @default(0)
+  total         Float
+  createdAt     DateTime  @default(now())
+  
+  invoice       Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product       Product   @relation(fields: [productId], references: [id])
+  
+  @@index([invoiceId])
+  @@index([productId])
+}
+
+model Payment {
+  id              String    @id @default(cuid())
+  paymentNumber   String    @unique
+  date            DateTime
+  customerId      String
+  amount          Float
+  paymentMode     PaymentMode
+  reference       String?
+  status          PaymentStatus @default(COMPLETED)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  customer        Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  paymentInvoices PaymentInvoice[]
+  
+  @@index([paymentNumber])
+  @@index([customerId])
+  @@index([date])
+}
+
+enum PaymentMode {
+  CASH
+  CHEQUE
+  BANK_TRANSFER
+  UPI
+}
+
+enum PaymentStatus {
+  COMPLETED
+  PENDING
+  FAILED
+}
+
+model PaymentInvoice {
+  id          String    @id @default(cuid())
+  paymentId   String
+  invoiceId   String
+  amount      Float
+  createdAt   DateTime  @default(now())
+  
+  payment     Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoice     Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  @@unique([paymentId, invoiceId])
+  @@index([paymentId])
+  @@index([invoiceId])
+}
+
+model User {
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  @@index([email])
+}
+
+model CompanySettings {
+  id        String    @id @default(cuid())
+  name      String
+  address   String?
+  city      String?
+  state     String?
+  pincode   String?
+  phone     String?
+  email     String?
+  gstin     String?
+  pan       String?
+  website   String?
+  updatedAt DateTime  @updatedAt
+}
+
+model BankDetails {
+  id            String    @id @default(cuid())
+  accountName   String
+  accountNumber String
+  ifscCode      String
+  bankName      String
+  branch        String?
+  updatedAt     DateTime  @updatedAt
+}
+
+model InvoiceSettings {
+  id             String    @id @default(cuid())
+  prefix         String    @default("INV")
+  startingNumber Int       @default(1)
+  terms          String?
+  notes          String?
+  updatedAt      DateTime  @updatedAt
+}
