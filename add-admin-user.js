@@ -1,14 +1,8 @@
 const { PrismaClient } = require('@prisma/client')
 const bcrypt = require('bcryptjs')
 
-// Use DIRECT_URL for this operation
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DIRECT_URL || process.env.DATABASE_URL
-    }
-  }
-})
+// Use DATABASE_URL by default (pooled connection for Vercel)
+const prisma = new PrismaClient()
 
 async function main() {
   console.log('🔧 Adding admin user...')
